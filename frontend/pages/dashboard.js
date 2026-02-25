@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Toast from "../components/Toast";
 
+const EXPIRATION_COLUMNS = {
+  "file_mm02tfs6": "Physical Exp Date",
+  "file_mm02q4hg": "Liability Exp Date",
+  "file_mm02xndg": "Registration Exp Date"
+};
+
 const FILE_COLUMNS = [
   { id:"file_mm01pv4x", label:"Resume" },
   { id:"file_mm02syqk", label:"Signed Contract" },
@@ -49,7 +55,6 @@ export default function Dashboard(){
 
   if(!user) return null;
 
-  // correct completion logic
   const completed = FILE_COLUMNS.filter(c=>{
     const col = columns.find(x=>x.id===c.id);
     if(!col?.value) return false;
@@ -65,7 +70,7 @@ export default function Dashboard(){
   const percent = Math.round((completed/total)*100);
 
   return(
-    <div className="min-h-screen bg-[#0f172a] p-10 text-gray-200">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0f172a] p-10 text-gray-200">
 
       {toast && (
         <Toast
@@ -76,25 +81,25 @@ export default function Dashboard(){
       )}
 
       {/* HEADER */}
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow p-6 mb-6">
-        <h1 className="text-2xl font-bold">{user.name}</h1>
-        <p className="text-gray-500">Upload required documents</p>
+      <div className="max-w-6xl mx-auto bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-8 mb-8 shadow-xl">
+        <h1 className="text-3xl font-semibold tracking-wide">{user.name}</h1>
+        <p className="text-gray-400 mt-1">Upload required documents</p>
 
-        <div className="mt-4">
-          <div className="h-3 bg-gray-200 rounded">
+        <div className="mt-6">
+          <div className="h-3 bg-white/10 rounded-full">
             <div
-              className="h-3 bg-green-500 rounded"
+              className="h-3 bg-emerald-500 rounded-full transition-all duration-500"
               style={{width:`${percent}%`}}
             />
           </div>
-          <p className="text-sm mt-1">
+          <p className="text-sm mt-2 text-gray-400">
             {completed}/{total} completed
           </p>
         </div>
       </div>
 
       {/* GRID */}
-      <div className="max-w-5xl mx-auto grid grid-cols-3 gap-5">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {FILE_COLUMNS.map(doc=>{
           const col = columns.find(c=>c.id===doc.id);
 
@@ -164,47 +169,60 @@ function DocCard({ doc, done, itemId, col, setToast }){
     }catch{}
   }
 
- return(
-  <div className={`rounded-2xl p-6 transition border
-    ${done
-      ? "bg-emerald-900/40 border-emerald-500/30"
-      : "bg-white/5 border-white/10 backdrop-blur"}
-  `}>
+  return(
+    <div className={`rounded-2xl p-6 border shadow-lg transition-all duration-300
+      ${done
+        ? "bg-emerald-900/40 border-emerald-500/30"
+        : "bg-white/5 border-white/10 backdrop-blur hover:border-white/30"}
+    `}>
 
-    <h3 className="font-semibold text-lg mb-2">{doc.label}</h3>
+      <h3 className="font-semibold text-lg mb-3 tracking-wide">{doc.label}</h3>
 
-    {done ? (
-      <div className="space-y-2">
-        <p className="text-emerald-400 font-medium">Completed</p>
+      {done ? (
+        <div className="space-y-2">
+          <p className="text-emerald-400 font-medium">Completed</p>
 
-        {fileName && (
-          <p className="text-sm text-gray-300 truncate">
-            {fileName}
-          </p>
-        )}
+          {fileName && (
+            <p className="text-sm text-gray-300 truncate">
+              {fileName}
+            </p>
+          )}
 
-        {fileUrl && (
-          <a
-            href={fileUrl}
-            target="_blank"
-            className="text-sm text-blue-400 underline"
-          >
-            View File
-          </a>
-        )}
+          {fileUrl && (
+            <a
+              href={fileUrl}
+              target="_blank"
+              className="text-sm text-blue-400 hover:text-blue-300 underline"
+            >
+              View File
+            </a>
+          )}
 
-        <label className="mt-3 inline-block bg-white/10 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/20 transition text-sm">
-          Replace File
+          <label className="mt-3 inline-block bg-white/10 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/20 transition text-sm">
+            Replace File
+            <input type="file" onChange={upload} className="hidden"/>
+          </label>
+        </div>
+      ):(
+        <label className="inline-block bg-blue-600 px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm shadow">
+          {uploading ? "Uploading..." : "Upload File"}
           <input type="file" onChange={upload} className="hidden"/>
         </label>
-      </div>
-    ):(
-      <label className="inline-block bg-blue-600 px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm">
-        {uploading ? "Uploading..." : "Upload File"}
-        <input type="file" onChange={upload} className="hidden"/>
-      </label>
-    )}
+      )}
 
-  </div>
-);
+      {/* Expiration UI */}
+      {EXPIRATION_COLUMNS[doc.id] && (
+        <div className="mt-4">
+          <label className="text-xs text-gray-400 block mb-1">
+            {EXPIRATION_COLUMNS[doc.id]}
+          </label>
+          <input
+            type="date"
+            className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-emerald-400"
+          />
+        </div>
+      )}
+
+    </div>
+  );
 }
