@@ -149,6 +149,13 @@ function DocCard({ doc, done, itemId, col, setToast }){
         form
       );
       setToast({message:"File uploaded successfully",type:"success"});
+
+      setToast({message:"File uploaded successfully",type:"success"});
+
+setTimeout(()=>{
+  load(itemId);   // refresh status immediately
+},500);
+      
     }catch{
       setToast({message:"Upload failed",type:"error"});
     }
