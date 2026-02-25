@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import multer from "multer";
 import { searchUser, uploadFile, getStatus, handleWebhook } from "./routes.js";
 import { initWebSocket } from "./websocket.js";
+import { updateExpiration } from "./routes.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.post("/search", searchUser);
 app.post("/upload", upload.single("file"), uploadFile);
 app.get("/status/:itemId", getStatus);
 app.post("/webhook", handleWebhook);
+app.post("/update-expiration", updateExpiration);
 
 const server = app.listen(process.env.PORT || 5000);
 initWebSocket(server);
