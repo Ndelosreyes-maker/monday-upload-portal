@@ -40,10 +40,10 @@ export default function Dashboard(){
   };
 
   useRealtime((msg)=>{
-    if(msg.itemId===user?.itemId){
-      load(user.itemId);
-    }
-  });
+  if(msg.type==="refresh" && msg.itemId===user?.itemId){
+    load(user.itemId);
+  }
+});
 
   if(!user) return null;
 
