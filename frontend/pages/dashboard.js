@@ -70,7 +70,7 @@ export default function Dashboard(){
   const percent = Math.round((completed/total)*100);
 
   return(
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0f172a] p-10 text-gray-200">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#020617] p-10 text-gray-200">
 
       {toast && (
         <Toast
@@ -134,20 +134,17 @@ function DocCard({ doc, done, itemId, col, columns, setToast }){
   const [uploading,setUploading]=useState(false);
   const [expirationDate,setExpirationDate]=useState("");
 
-  // load existing expiration date from monday
+  // load expiration date from monday
   useEffect(()=>{
     const expColId = EXPIRATION_COLUMN_IDS[doc.id];
     if(!expColId) return;
 
     const expCol = columns.find(c=>c.id===expColId);
-    if(!expCol?.value) return;
+    if(!expCol) return;
 
-    try{
-      const parsed = JSON.parse(expCol.value);
-      if(parsed.date){
-        setExpirationDate(parsed.date);
-      }
-    }catch{}
+    if(expCol.text){
+      setExpirationDate(expCol.text);
+    }
   },[columns]);
 
   const upload = async(e)=>{
@@ -174,9 +171,8 @@ function DocCard({ doc, done, itemId, col, columns, setToast }){
     setUploading(false);
   };
 
-  const updateDate = async(e)=>{
-    const newDate = e.target.value;
-    setExpirationDate(newDate);
+  const saveExpiration = async()=>{
+    if(!expirationDate) return;
 
     try{
       await axios.post(
@@ -184,20 +180,13 @@ function DocCard({ doc, done, itemId, col, columns, setToast }){
         {
           itemId,
           columnId: EXPIRATION_COLUMN_IDS[doc.id],
-          date: newDate
+          date: expirationDate
         }
       );
 
-      setToast({
-        message:"Expiration updated",
-        type:"success"
-      });
-
+      setToast({message:"Expiration saved",type:"success"});
     }catch{
-      setToast({
-        message:"Failed to update date",
-        type:"error"
-      });
+      setToast({message:"Failed to save date",type:"error"});
     }
   };
 
@@ -228,9 +217,7 @@ function DocCard({ doc, done, itemId, col, columns, setToast }){
           <p className="text-emerald-400 font-medium">Completed</p>
 
           {fileName && (
-            <p className="text-sm text-gray-300 truncate">
-              {fileName}
-            </p>
+            <p className="text-sm text-gray-300 truncate">{fileName}</p>
           )}
 
           {fileUrl && (
@@ -255,18 +242,22 @@ function DocCard({ doc, done, itemId, col, columns, setToast }){
         </label>
       )}
 
-      {/* expiration input */}
+      {/* EXPIRATION */}
       {EXPIRATION_COLUMN_IDS[doc.id] && (
-        <div className="mt-4">
-          <label className="text-xs text-gray-400 block mb-1">
-            Expiration Date
-          </label>
+        <div className="mt-4 flex items-center gap-2">
           <input
             type="date"
             value={expirationDate}
-            onChange={updateDate}
-            className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-white text-sm"
+            onChange={(e)=>setExpirationDate(e.target.value)}
+            className="flex-1 bg-white/10 border border-white/20 rounded-lg p-2 text-white text-sm"
           />
+
+          <button
+            onClick={saveExpiration}
+            className="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg"
+          >
+            +
+          </button>
         </div>
       )}
 
