@@ -7,9 +7,19 @@ import { notifyClients } from "./websocket.js";
 const BOARD = process.env.MONDAY_BOARD_ID;
 const PORTAL = "pulse_id_mm0wa6sj";
 
+
+
+/* ======================================================
+   SEARCH USER
+====================================================== */
+
 export const searchUser = async (req, res) => {
   try {
     const { portalId } = req.body;
+
+    if (!portalId) {
+      return res.status(400).json({ error: "Portal ID required" });
+    }
 
     const query = `
       query ($board:[ID!]) {
@@ -25,6 +35,7 @@ export const searchUser = async (req, res) => {
       }`;
 
     const data = await mondayClient(query, { board: BOARD });
+
     const items = data.data.boards[0].items_page.items;
 
     const item = items.find(i => {
@@ -34,15 +45,17 @@ export const searchUser = async (req, res) => {
       if (col.text && col.text.trim() === portalId.trim()) return true;
 
       try {
-        const v = JSON.parse(col.value || "{}");
-        if (v.text === portalId) return true;
-        if (v.label === portalId) return true;
+        const parsed = JSON.parse(col.value || "{}");
+        if (parsed.text === portalId) return true;
+        if (parsed.label === portalId) return true;
       } catch {}
 
       return false;
     });
 
-    if (!item) return res.status(404).json({ error: "Not found" });
+    if (!item) {
+      return res.status(404).json({ error: "Not found" });
+    }
 
     res.json({
       itemId: item.id,
@@ -51,28 +64,45 @@ export const searchUser = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Search error:", err);
+    console.error("Search error:", err.response?.data || err);
     res.status(500).json({ error: "Search failed" });
   }
 };
+
+
+
+/* ======================================================
+   UPLOAD FILE
+====================================================== */
 
 export const uploadFile = async (req, res) => {
   try {
     const { itemId, columnId } = req.body;
     const file = req.file;
 
+    if (!file) {
+      return res.status(400).json({ error: "File missing" });
+    }
+
     const form = new FormData();
+
     form.append("query", `
       mutation ($file: File!) {
-        add_file_to_column(item_id:${itemId}, column_id:"${columnId}", file:$file){id}
+        add_file_to_column(
+          item_id:${Number(itemId)},
+          column_id:"${columnId}",
+          file:$file
+        ){
+          id
+        }
       }
     `);
 
     form.append(
-  "variables[file]",
-  fs.createReadStream(file.path),
-  file.originalname
-);
+      "variables[file]",
+      fs.createReadStream(file.path),
+      file.originalname
+    );
 
     await axios.post("https://api.monday.com/v2/file", form, {
       headers: {
@@ -83,15 +113,24 @@ export const uploadFile = async (req, res) => {
 
     fs.unlinkSync(file.path);
 
-    notifyClients({ type:"refresh", itemId });
+    notifyClients({
+      type: "refresh",
+      itemId: String(itemId)
+    });
 
-    res.json({ success:true });
+    res.json({ success: true });
 
   } catch (err) {
-    console.error("Upload error:", err);
+    console.error("Upload error:", err.response?.data || err);
     res.status(500).json({ error: "Upload failed" });
   }
 };
+
+
+
+/* ======================================================
+   GET STATUS
+====================================================== */
 
 export const getStatus = async (req, res) => {
   try {
@@ -99,23 +138,30 @@ export const getStatus = async (req, res) => {
 
     const query = `
       query {
-        items(ids:${itemId}){
+        items(ids:${Number(itemId)}){
           column_values{id text value}
         }
       }`;
 
     const data = await mondayClient(query);
-    const columns = data.data.items[0].column_values;
 
-    res.json(columns);
+    res.json(data.data.items[0].column_values);
 
   } catch (err) {
-    console.error("Status error:", err);
+    console.error("Status error:", err.response?.data || err);
     res.status(500).json({ error: "Status failed" });
   }
 };
 
+
+
+/* ======================================================
+   WEBHOOK HANDLER
+====================================================== */
+
 export const handleWebhook = async (req, res) => {
+
+  // verification handshake
   if (req.body.challenge) {
     return res.json({ challenge: req.body.challenge });
   }
@@ -143,14 +189,24 @@ export const handleWebhook = async (req, res) => {
   res.sendStatus(200);
 };
 
+
+
+/* ======================================================
+   UPDATE EXPIRATION DATE
+====================================================== */
+
 export const updateExpiration = async (req, res) => {
   try {
     const { itemId, columnId, date } = req.body;
 
+    if (!itemId || !columnId || !date) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
     const query = `
       mutation {
         change_simple_column_value(
-          item_id: ${itemId},
+          item_id: ${Number(itemId)},
           column_id: "${columnId}",
           value: "${date}"
         ) {
@@ -162,6 +218,11 @@ export const updateExpiration = async (req, res) => {
     const result = await mondayClient(query);
 
     console.log("DATE UPDATED:", result.data);
+
+    notifyClients({
+      type: "refresh",
+      itemId: String(itemId)
+    });
 
     res.json({ success: true });
 
