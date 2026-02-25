@@ -68,7 +68,11 @@ export const uploadFile = async (req, res) => {
       }
     `);
 
-    form.append("variables[file]", fs.createReadStream(file.path));
+    form.append(
+  "variables[file]",
+  fs.createReadStream(file.path),
+  file.originalname
+);
 
     await axios.post("https://api.monday.com/v2/file", form, {
       headers: {
