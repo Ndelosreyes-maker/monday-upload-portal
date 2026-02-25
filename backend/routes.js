@@ -27,6 +27,8 @@ export const searchUser = async (req, res) => {
   const data = await mondayClient(query, { board: BOARD });
   const items = data.data.boards[0].items_page.items;
 
+  console.log(JSON.stringify(items[0], null, 2));
+
   const item = items.find(i => {
   const col = i.column_values.find(c => c.id === PORTAL);
   if (!col) return false;
