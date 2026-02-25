@@ -27,9 +27,22 @@ export const searchUser = async (req, res) => {
   const data = await mondayClient(query, { board: BOARD });
   const items = data.data.boards[0].items_page.items;
 
-  const item = items.find(i =>
-    i.column_values.find(c => c.id === PORTAL)?.text === portalId
-  );
+  const item = items.find(i => {
+  const col = i.column_values.find(c => c.id === PORTAL);
+  if (!col) return false;
+
+  // Try text match
+  if (col.text && col.text.trim() === portalId.trim()) return true;
+
+  // Try value JSON match
+  try {
+    const v = JSON.parse(col.value || "{}");
+    if (v.text === portalId) return true;
+    if (v.label === portalId) return true;
+  } catch {}
+
+  return false;
+});
 
   if (!item) return res.status(404).json({ error: "Not found" });
 
