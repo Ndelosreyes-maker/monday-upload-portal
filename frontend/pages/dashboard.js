@@ -65,7 +65,7 @@ export default function Dashboard(){
   const percent = Math.round((completed/total)*100);
 
   return(
-    <div className="min-h-screen bg-gray-50 p-10">
+    <div className="min-h-screen bg-[#0f172a] p-10 text-gray-200">
 
       {toast && (
         <Toast
