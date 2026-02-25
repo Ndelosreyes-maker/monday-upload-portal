@@ -204,20 +204,22 @@ export const updateExpiration = async (req, res) => {
     }
 
     const query = `
-      mutation {
+      mutation ($itemId: ID!, $columnId: String!, $value: String!) {
         change_simple_column_value(
-          item_id: ${Number(itemId)},
-          column_id: "${columnId}",
-          value: "${date}"
+          item_id: $itemId,
+          column_id: $columnId,
+          value: $value
         ) {
           id
         }
       }
     `;
 
-    const result = await mondayClient(query);
-
-    console.log("DATE UPDATED:", result.data);
+    await mondayClient(query, {
+      itemId: Number(itemId),
+      columnId: columnId,
+      value: date
+    });
 
     notifyClients({
       type: "refresh",
