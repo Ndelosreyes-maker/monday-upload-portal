@@ -98,17 +98,25 @@ export const getStatus = async (req, res) => {
 
 export const handleWebhook = async (req, res) => {
 
-  // Monday verification challenge
+  // Verification handshake
   if (req.body.challenge) {
     return res.json({ challenge: req.body.challenge });
   }
 
   const event = req.body;
 
-  const itemId =
+  // Monday sends item id in different places depending on event
+  let itemId =
     event?.event?.pulseId ||
+    event?.event?.pulse_id ||
+    event?.event?.itemId ||
     event?.pulseId ||
-    event?.itemId;
+    event?.pulse_id;
+
+  // Sometimes nested deeper
+  if (!itemId && event?.event?.value?.pulseId) {
+    itemId = event.event.value.pulseId;
+  }
 
   if (itemId) {
     notifyClients({
