@@ -147,12 +147,14 @@ export const updateExpiration = async (req, res) => {
   try {
     const { itemId, columnId, date } = req.body;
 
+    const value = JSON.stringify({ date });
+
     const query = `
       mutation {
         change_column_value(
           item_id: ${itemId},
           column_id: "${columnId}",
-          value: "{\"date\":\"${date}\"}"
+          value: ${JSON.stringify(value)}
         ) {
           id
         }
@@ -164,7 +166,7 @@ export const updateExpiration = async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
-    console.error("Expiration update error:", err);
-    res.status(500).json({ error: "Failed" });
+    console.error("Expiration update error:", err.response?.data || err);
+    res.status(500).json({ error: "Failed to update expiration" });
   }
 };
