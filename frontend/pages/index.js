@@ -1,28 +1,46 @@
 import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
+import Toast from "../components/Toast";
 
 export default function Home() {
   const [portalId, setPortalId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const router = useRouter();
 
   const search = async () => {
+    if (!portalId) return;
+
+    setLoading(true);
+
     try {
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/search`,
         { portalId }
       );
+
       localStorage.setItem("user", JSON.stringify(res.data));
       router.push("/dashboard");
+
     } catch (err) {
-      alert("Portal ID not found");
+      setToast({ message: "Portal ID not found", type: "error" });
     }
+
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white shadow-2xl rounded-2xl p-10 w-[420px]">
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
+      <div className="bg-white shadow-2xl rounded-2xl p-10 w-[420px]">
         <h1 className="text-3xl font-bold text-center mb-6">
           Employee Upload Portal
         </h1>
@@ -36,11 +54,11 @@ export default function Home() {
 
         <button
           onClick={search}
-          className="w-full bg-black text-white p-3 rounded-lg hover:bg-gray-800 transition"
+          disabled={loading}
+          className="w-full bg-black text-white p-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-60"
         >
-          Find
+          {loading ? "Searching..." : "Find"}
         </button>
-
       </div>
     </div>
   );
