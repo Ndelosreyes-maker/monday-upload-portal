@@ -93,6 +93,16 @@ export const getStatus = async (req, res) => {
   }`;
 
   const data = await mondayClient(query);
+
+  const columns = data.data.items[0].column_values;
+
+  console.log("STATUS RESPONSE:");
+  console.log(JSON.stringify(columns, null, 2));
+
+  res.json(columns);
+};
+
+  const data = await mondayClient(query);
   res.json(data.data.items[0].column_values);
 };
 
