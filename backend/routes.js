@@ -147,7 +147,10 @@ export const updateExpiration = async (req, res) => {
   try {
     const { itemId, columnId, date } = req.body;
 
-    const value = JSON.stringify({ date });
+    const value = JSON.stringify({
+      date: date,
+      time: null
+    });
 
     const query = `
       mutation {
@@ -161,7 +164,9 @@ export const updateExpiration = async (req, res) => {
       }
     `;
 
-    await mondayClient(query);
+    const result = await mondayClient(query);
+
+    console.log("MONDAY DATE UPDATE:", result.data);
 
     res.json({ success: true });
 
