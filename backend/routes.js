@@ -142,3 +142,29 @@ export const handleWebhook = async (req, res) => {
 
   res.sendStatus(200);
 };
+
+export const updateExpiration = async (req, res) => {
+  try {
+    const { itemId, columnId, date } = req.body;
+
+    const query = `
+      mutation {
+        change_column_value(
+          item_id: ${itemId},
+          column_id: "${columnId}",
+          value: "{\"date\":\"${date}\"}"
+        ) {
+          id
+        }
+      }
+    `;
+
+    await mondayClient(query);
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("Expiration update error:", err);
+    res.status(500).json({ error: "Failed" });
+  }
+};
