@@ -82,6 +82,17 @@ export const getStatus = async (req, res) => {
 };
 
 export const handleWebhook = async (req, res) => {
-  notifyClients({ type:"webhook", payload:req.body });
+
+  // ✅ Monday webhook verification
+  if (req.body.challenge) {
+    return res.status(200).json({ challenge: req.body.challenge });
+  }
+
+  // Normal webhook event
+  notifyClients({
+    type: "webhook",
+    payload: req.body
+  });
+
   res.sendStatus(200);
 };
