@@ -164,35 +164,47 @@ function DocCard({ doc, done, itemId, col, setToast }){
     }catch{}
   }
 
-  return(
-    <div className={`rounded-2xl p-5 shadow transition ${done?"bg-green-100":"bg-white"}`}>
-      <h3 className="font-semibold mb-3">{doc.label}</h3>
+ return(
+  <div className={`rounded-2xl p-6 transition border
+    ${done
+      ? "bg-emerald-900/40 border-emerald-500/30"
+      : "bg-white/5 border-white/10 backdrop-blur"}
+  `}>
 
-      {done ? (
-        <div className="space-y-2">
-          <p className="text-green-700 font-semibold">Completed</p>
+    <h3 className="font-semibold text-lg mb-2">{doc.label}</h3>
 
-          {fileName && (
-            <p className="text-sm text-gray-600 truncate">{fileName}</p>
-          )}
+    {done ? (
+      <div className="space-y-2">
+        <p className="text-emerald-400 font-medium">Completed</p>
 
-          {fileUrl && (
-            <a href={fileUrl} target="_blank" className="text-sm text-blue-600 underline">
-              View File
-            </a>
-          )}
+        {fileName && (
+          <p className="text-sm text-gray-300 truncate">
+            {fileName}
+          </p>
+        )}
 
-          <label className="block mt-2 text-sm text-gray-600 cursor-pointer">
-            Replace File
-            <input type="file" onChange={upload} className="hidden"/>
-          </label>
-        </div>
-      ):(
-        <label className="block text-sm text-gray-600 cursor-pointer">
-          {uploading?"Uploading...":"Upload File"}
+        {fileUrl && (
+          <a
+            href={fileUrl}
+            target="_blank"
+            className="text-sm text-blue-400 underline"
+          >
+            View File
+          </a>
+        )}
+
+        <label className="mt-3 inline-block bg-white/10 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/20 transition text-sm">
+          Replace File
           <input type="file" onChange={upload} className="hidden"/>
         </label>
-      )}
-    </div>
-  );
+      </div>
+    ):(
+      <label className="inline-block bg-blue-600 px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm">
+        {uploading ? "Uploading..." : "Upload File"}
+        <input type="file" onChange={upload} className="hidden"/>
+      </label>
+    )}
+
+  </div>
+);
 }
