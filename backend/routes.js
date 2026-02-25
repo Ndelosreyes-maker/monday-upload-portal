@@ -98,16 +98,24 @@ export const getStatus = async (req, res) => {
 
 export const handleWebhook = async (req, res) => {
 
-  // ✅ Monday webhook verification
+  // Monday verification challenge
   if (req.body.challenge) {
-    return res.status(200).json({ challenge: req.body.challenge });
+    return res.json({ challenge: req.body.challenge });
   }
 
-  // Normal webhook event
-  notifyClients({
-    type: "webhook",
-    payload: req.body
-  });
+  const event = req.body;
+
+  const itemId =
+    event?.event?.pulseId ||
+    event?.pulseId ||
+    event?.itemId;
+
+  if (itemId) {
+    notifyClients({
+      type: "refresh",
+      itemId: String(itemId)
+    });
+  }
 
   res.sendStatus(200);
 };
