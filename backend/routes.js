@@ -1,4 +1,3 @@
-
 import fs from "fs";
 import FormData from "form-data";
 import axios from "axios";
@@ -9,113 +8,116 @@ const BOARD = process.env.MONDAY_BOARD_ID;
 const PORTAL = "pulse_id_mm0wa6sj";
 
 export const searchUser = async (req, res) => {
-  const { portalId } = req.body;
-
-  const query = `
-  query ($board:[ID!]) {
-    boards(ids:$board){
-      items_page(limit:500){
-        items{
-          id
-          name
-          column_values{id text value}
-        }
-      }
-    }
-  }`;
-
-  const data = await mondayClient(query, { board: BOARD });
-  const items = data.data.boards[0].items_page.items;
-
-  console.log(JSON.stringify(items[0], null, 2));
-
-  const item = items.find(i => {
-  const col = i.column_values.find(c => c.id === PORTAL);
-  if (!col) return false;
-
-  // Try text match
-  if (col.text && col.text.trim() === portalId.trim()) return true;
-
-  // Try value JSON match
   try {
-    const v = JSON.parse(col.value || "{}");
-    if (v.text === portalId) return true;
-    if (v.label === portalId) return true;
-  } catch {}
+    const { portalId } = req.body;
 
-  return false;
-});
+    const query = `
+      query ($board:[ID!]) {
+        boards(ids:$board){
+          items_page(limit:500){
+            items{
+              id
+              name
+              column_values{id text value}
+            }
+          }
+        }
+      }`;
 
-  if (!item) return res.status(404).json({ error: "Not found" });
+    const data = await mondayClient(query, { board: BOARD });
+    const items = data.data.boards[0].items_page.items;
 
-  res.json({
-    itemId: item.id,
-    name: item.name,
-    columns: item.column_values
-  });
+    const item = items.find(i => {
+      const col = i.column_values.find(c => c.id === PORTAL);
+      if (!col) return false;
+
+      if (col.text && col.text.trim() === portalId.trim()) return true;
+
+      try {
+        const v = JSON.parse(col.value || "{}");
+        if (v.text === portalId) return true;
+        if (v.label === portalId) return true;
+      } catch {}
+
+      return false;
+    });
+
+    if (!item) return res.status(404).json({ error: "Not found" });
+
+    res.json({
+      itemId: item.id,
+      name: item.name,
+      columns: item.column_values
+    });
+
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ error: "Search failed" });
+  }
 };
 
 export const uploadFile = async (req, res) => {
-  const { itemId, columnId } = req.body;
-  const file = req.file;
+  try {
+    const { itemId, columnId } = req.body;
+    const file = req.file;
 
-  const form = new FormData();
-  form.append("query", `
-    mutation ($file: File!) {
-      add_file_to_column(item_id:${itemId}, column_id:"${columnId}", file:$file){id}
-    }
-  `);
+    const form = new FormData();
+    form.append("query", `
+      mutation ($file: File!) {
+        add_file_to_column(item_id:${itemId}, column_id:"${columnId}", file:$file){id}
+      }
+    `);
 
-  form.append("variables[file]", fs.createReadStream(file.path));
+    form.append("variables[file]", fs.createReadStream(file.path));
 
-  await axios.post("https://api.monday.com/v2/file", form, {
-    headers: {
-      Authorization: process.env.MONDAY_API_KEY,
-      ...form.getHeaders()
-    }
-  });
+    await axios.post("https://api.monday.com/v2/file", form, {
+      headers: {
+        Authorization: process.env.MONDAY_API_KEY,
+        ...form.getHeaders()
+      }
+    });
 
-  fs.unlinkSync(file.path);
+    fs.unlinkSync(file.path);
 
-  notifyClients({ type:"uploaded", itemId, columnId });
+    notifyClients({ type:"refresh", itemId });
 
-  res.json({ success:true });
+    res.json({ success:true });
+
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
 };
 
 export const getStatus = async (req, res) => {
-  const { itemId } = req.params;
+  try {
+    const { itemId } = req.params;
 
-  const query = `
-  query {
-    items(ids:${itemId}){
-      column_values{id text value}
-    }
-  }`;
+    const query = `
+      query {
+        items(ids:${itemId}){
+          column_values{id text value}
+        }
+      }`;
 
-  const data = await mondayClient(query);
+    const data = await mondayClient(query);
+    const columns = data.data.items[0].column_values;
 
-  const columns = data.data.items[0].column_values;
+    res.json(columns);
 
-  console.log("STATUS RESPONSE:");
-  console.log(JSON.stringify(columns, null, 2));
-
-  res.json(columns);
-};
-
-  const data = await mondayClient(query);
-  res.json(data.data.items[0].column_values);
+  } catch (err) {
+    console.error("Status error:", err);
+    res.status(500).json({ error: "Status failed" });
+  }
 };
 
 export const handleWebhook = async (req, res) => {
-
-  // Verification handshake
   if (req.body.challenge) {
     return res.json({ challenge: req.body.challenge });
   }
 
   const event = req.body;
 
-  // Monday sends item id in different places depending on event
   let itemId =
     event?.event?.pulseId ||
     event?.event?.pulse_id ||
@@ -123,7 +125,6 @@ export const handleWebhook = async (req, res) => {
     event?.pulseId ||
     event?.pulse_id;
 
-  // Sometimes nested deeper
   if (!itemId && event?.event?.value?.pulseId) {
     itemId = event.event.value.pulseId;
   }
