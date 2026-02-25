@@ -27,10 +27,17 @@ export default function Dashboard(){
   const [columns,setColumns]=useState([]);
 
   useEffect(()=>{
-    const u = JSON.parse(localStorage.getItem("user"));
-    setUser(u);
+  const u = JSON.parse(localStorage.getItem("user"));
+  setUser(u);
+  load(u.itemId);
+
+  // Auto refresh every 5 seconds
+  const interval = setInterval(()=>{
     load(u.itemId);
-  },[]);
+  },5000);
+
+  return ()=> clearInterval(interval);
+},[]);
 
   const load = async (itemId)=>{
     const res = await axios.get(
