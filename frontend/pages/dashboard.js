@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Toast from "../components/Toast";
 
-const EXPIRATION_COLUMNS = {
-  "file_mm02tfs6": "Physical Exp Date",
-  "file_mm02q4hg": "Liability Exp Date",
-  "file_mm02xndg": "Registration Exp Date"
+const EXPIRATION_COLUMN_IDS = {
+  "file_mm02tfs6": "date_mm02gj3n",   // Physical
+  "file_mm02q4hg": "date_mm02942n",   // Liability
+  "file_mm02xndg": "date_mm02ew9z"    // Registration
 };
 
 const FILE_COLUMNS = [
@@ -120,6 +120,7 @@ export default function Dashboard(){
               done={done}
               itemId={user.itemId}
               col={col}
+              columns={columns}
               setToast={setToast}
             />
           );
@@ -129,8 +130,25 @@ export default function Dashboard(){
   );
 }
 
-function DocCard({ doc, done, itemId, col, setToast }){
+function DocCard({ doc, done, itemId, col, columns, setToast }){
   const [uploading,setUploading]=useState(false);
+  const [expirationDate,setExpirationDate]=useState("");
+
+  // load existing expiration date from monday
+  useEffect(()=>{
+    const expColId = EXPIRATION_COLUMN_IDS[doc.id];
+    if(!expColId) return;
+
+    const expCol = columns.find(c=>c.id===expColId);
+    if(!expCol?.value) return;
+
+    try{
+      const parsed = JSON.parse(expCol.value);
+      if(parsed.date){
+        setExpirationDate(parsed.date);
+      }
+    }catch{}
+  },[columns]);
 
   const upload = async(e)=>{
     const file=e.target.files[0];
@@ -149,18 +167,38 @@ function DocCard({ doc, done, itemId, col, setToast }){
         form
       );
       setToast({message:"File uploaded successfully",type:"success"});
-
-      setToast({message:"File uploaded successfully",type:"success"});
-
-setTimeout(()=>{
-  load(itemId);   // refresh status immediately
-},500);
-      
     }catch{
       setToast({message:"Upload failed",type:"error"});
     }
 
     setUploading(false);
+  };
+
+  const updateDate = async(e)=>{
+    const newDate = e.target.value;
+    setExpirationDate(newDate);
+
+    try{
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/update-expiration`,
+        {
+          itemId,
+          columnId: EXPIRATION_COLUMN_IDS[doc.id],
+          date: newDate
+        }
+      );
+
+      setToast({
+        message:"Expiration updated",
+        type:"success"
+      });
+
+    }catch{
+      setToast({
+        message:"Failed to update date",
+        type:"error"
+      });
+    }
   };
 
   let fileName=null;
@@ -183,7 +221,7 @@ setTimeout(()=>{
         : "bg-white/5 border-white/10 backdrop-blur hover:border-white/30"}
     `}>
 
-      <h3 className="font-semibold text-lg mb-3 tracking-wide">{doc.label}</h3>
+      <h3 className="font-semibold text-lg mb-3">{doc.label}</h3>
 
       {done ? (
         <div className="space-y-2">
@@ -199,7 +237,7 @@ setTimeout(()=>{
             <a
               href={fileUrl}
               target="_blank"
-              className="text-sm text-blue-400 hover:text-blue-300 underline"
+              className="text-sm text-blue-400 underline"
             >
               View File
             </a>
@@ -211,21 +249,23 @@ setTimeout(()=>{
           </label>
         </div>
       ):(
-        <label className="inline-block bg-blue-600 px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm shadow">
+        <label className="inline-block bg-blue-600 px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm">
           {uploading ? "Uploading..." : "Upload File"}
           <input type="file" onChange={upload} className="hidden"/>
         </label>
       )}
 
-      {/* Expiration UI */}
-      {EXPIRATION_COLUMNS[doc.id] && (
+      {/* expiration input */}
+      {EXPIRATION_COLUMN_IDS[doc.id] && (
         <div className="mt-4">
           <label className="text-xs text-gray-400 block mb-1">
-            {EXPIRATION_COLUMNS[doc.id]}
+            Expiration Date
           </label>
           <input
             type="date"
-            className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-emerald-400"
+            value={expirationDate}
+            onChange={updateDate}
+            className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-white text-sm"
           />
         </div>
       )}
