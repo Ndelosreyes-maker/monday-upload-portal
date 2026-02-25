@@ -86,19 +86,28 @@ export default function Dashboard(){
 
       {/* GRID */}
       <div className="max-w-5xl mx-auto grid grid-cols-3 gap-5">
-        {FILE_COLUMNS.map(doc=>{
-          const col = columns.find(c=>c.id===doc.id);
-          const done = col?.value?.includes("files");
+      {FILE_COLUMNS.map(doc=>{
+  const col = columns.find(c=>c.id===doc.id);
 
-          return(
-            <DocCard
-              key={doc.id}
-              doc={doc}
-              done={done}
-              itemId={user.itemId}
-            />
-          );
-        })}
+  let done = false;
+  if (col?.value) {
+    try {
+      const parsed = JSON.parse(col.value);
+      if (parsed.files && parsed.files.length > 0) {
+        done = true;
+      }
+    } catch {}
+  }
+
+  return(
+    <DocCard
+      key={doc.id}
+      doc={doc}
+      done={done}
+      itemId={user.itemId}
+    />
+  );
+})}
       </div>
 
     </div>
