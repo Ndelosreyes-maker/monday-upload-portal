@@ -114,34 +114,101 @@ export default function Dashboard(){
   );
 }
 
-function DocCard({doc,done,itemId}){
-  const upload = async(e)=>{
+import Toast from "../components/Toast";
+import { useState } from "react";
+import axios from "axios";
+
+function DocCard({ doc, done, itemId, col }) {
+  const [toast, setToast] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const upload = async (e) => {
     const file = e.target.files[0];
-    if(!file) return;
+    if (!file) return;
+
+    setUploading(true);
 
     const form = new FormData();
-    form.append("file",file);
-    form.append("itemId",itemId);
-    form.append("columnId",doc.id);
+    form.append("file", file);
+    form.append("itemId", itemId);
+    form.append("columnId", doc.id);
 
-    await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/upload`,
-      form
-    );
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/upload`,
+        form
+      );
+      setToast({ message: "File uploaded successfully", type: "success" });
+    } catch {
+      setToast({ message: "Upload failed", type: "error" });
+    }
 
-    alert("Uploaded!");
+    setUploading(false);
   };
 
-  return(
+  let fileName = null;
+  let fileUrl = null;
+
+  if (col?.value) {
+    try {
+      const parsed = JSON.parse(col.value);
+      if (parsed.files && parsed.files.length > 0) {
+        fileName = parsed.files[0].name;
+        fileUrl = parsed.files[0].asset_url;
+      }
+    } catch {}
+  }
+
+  return (
     <div className={`rounded-2xl p-5 shadow transition
-      ${done?"bg-green-100":"bg-white"}
-    `}>
+      ${done ? "bg-green-100" : "bg-white"}`}>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <h3 className="font-semibold mb-3">{doc.label}</h3>
 
       {done ? (
-        <p className="text-green-700 font-semibold">Completed</p>
-      ):(
-        <input type="file" onChange={upload}/>
+        <div className="space-y-2">
+          <p className="text-green-700 font-semibold">Completed</p>
+
+          {fileName && (
+            <p className="text-sm text-gray-600 truncate">{fileName}</p>
+          )}
+
+          {fileUrl && (
+            <a
+              href={fileUrl}
+              target="_blank"
+              className="text-sm text-blue-600 underline"
+            >
+              View File
+            </a>
+          )}
+
+          <label className="block mt-2 text-sm text-gray-600 cursor-pointer">
+            Replace File
+            <input
+              type="file"
+              onChange={upload}
+              className="hidden"
+            />
+          </label>
+        </div>
+      ) : (
+        <label className="block text-sm text-gray-600 cursor-pointer">
+          {uploading ? "Uploading..." : "Upload File"}
+          <input
+            type="file"
+            onChange={upload}
+            className="hidden"
+          />
+        </label>
       )}
     </div>
   );
